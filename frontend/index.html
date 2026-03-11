@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💕 CoupleQuest</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="bg"></div>
+<div class="stars" id="stars"></div>
+<div class="blob" style="width:500px;height:500px;background:rgba(255,123,172,0.18);top:-150px;left:-150px;animation-delay:0s"></div>
+<div class="blob" style="width:400px;height:400px;background:rgba(184,169,255,0.15);top:40%;right:-100px;animation-delay:-4s"></div>
+<div class="blob" style="width:300px;height:300px;background:rgba(142,237,199,0.12);bottom:5%;left:5%;animation-delay:-7s"></div>
+<div class="particle-layer" id="particles"></div>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loadingText">Chargement…</div>
+</div>
+
+<div class="reaction-popup" id="reactionPopup">
+  <span class="reaction-emoji" id="reactionEmoji">✨</span>
+  <div class="reaction-text" id="reactionText"></div>
+</div>
+
+<div id="app">
+
+  <!-- ═══════════ AUTH ═══════════ -->
+  <div id="screen-auth" class="screen">
+    <div class="welcome-hearts">💕</div>
+    <div class="welcome-big">CoupleQuest</div>
+    <div class="welcome-sub">Le quiz qui reconstruit vos bases 🌸</div>
+
+    <div class="auth-tabs" style="max-width:400px;width:100%">
+      <button class="auth-tab active" id="tab-register" onclick="switchAuthTab('register')">Créer un compte</button>
+      <button class="auth-tab" id="tab-login" onclick="switchAuthTab('login')">Se connecter</button>
+    </div>
+
+    <div id="form-register" class="auth-form" style="max-width:400px">
+      <div id="authError" class="auth-error"></div>
+      <label class="photo-upload-area" for="reg-photo">
+        <div class="photo-placeholder" id="photoPlaceholder">📷</div>
+        <img class="photo-preview" id="photoPreview" alt="Ta photo">
+        <div>
+          <div class="upload-label">Ajouter ta photo de profil</div>
+          <div class="upload-sub">JPG, PNG — max 5MB</div>
+        </div>
+      </label>
+      <input type="file" id="reg-photo" accept="image/*" style="display:none" onchange="previewPhoto(this)">
+      <input class="auth-input" type="text" id="reg-prenom" placeholder="Ton prénom">
+      <input class="auth-input" type="email" id="reg-email" placeholder="Ton email">
+      <input class="auth-input" type="password" id="reg-password" placeholder="Mot de passe (6 caractères min)">
+      <button class="auth-btn" onclick="register()">Créer mon compte ✨</button>
+    </div>
+
+    <div id="form-login" class="auth-form" style="max-width:400px;display:none">
+      <div id="authError" class="auth-error"></div>
+      <input class="auth-input" type="email" id="login-email" placeholder="Ton email">
+      <input class="auth-input" type="password" id="login-password" placeholder="Mot de passe">
+      <button class="auth-btn" onclick="login()">Se connecter 💕</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ COUPLE SETUP ═══════════ -->
+  <div id="screen-couple-setup" class="screen">
+    <div class="welcome-hearts">🔗</div>
+    <div class="welcome-big" style="font-size:1.8rem">Lier votre couple</div>
+    <div class="welcome-sub" id="setupGreeting"></div>
+
+    <div class="setup-card" style="max-width:400px">
+      <div class="setup-title">Créer un couple</div>
+      <div class="setup-sub">Tu reçois un code à partager à ton·ta partenaire</div>
+      <button class="auth-btn" id="createBtn" onclick="createCouple()">Générer mon code 💕</button>
+      <div class="code-display" id="codeDisplay" style="display:none">
+        <div style="font-size:0.8rem;font-weight:700;color:var(--text-light);margin-bottom:6px">Ton code couple</div>
+        <div class="code-big" id="generatedCode">——</div>
+        <div class="code-hint">Partage ce code à ton·ta partenaire 🌸</div>
+      </div>
+    </div>
+
+    <div class="or-divider" style="max-width:400px;width:100%">OU</div>
+
+    <div class="setup-card" style="max-width:400px">
+      <div class="setup-title">Rejoindre un couple</div>
+      <div class="setup-sub">Entre le code que ton·ta partenaire t'a partagé</div>
+      <div class="join-row">
+        <input class="join-input" type="text" id="joinCode" placeholder="XXXXXX" maxlength="6">
+        <button class="join-btn" onclick="joinCouple()">Rejoindre →</button>
+      </div>
+    </div>
+
+    <button class="logout-btn" onclick="logout()">← Se déconnecter</button>
+  </div>
+
+  <!-- ═══════════ WELCOME ═══════════ -->
+  <div id="screen-welcome" class="screen">
+    <div style="padding-top:40px;text-align:center;width:100%">
+      <div class="welcome-big">CoupleQuest</div>
+      <div class="welcome-sub">Quiz de couple · Révélation 💕</div>
+    </div>
+
+    <div class="couple-banner">
+      <div class="couple-member">
+        <div class="member-avatar" id="avatar-user1">?</div>
+        <div class="member-name" id="name-user1">—</div>
+        <div class="member-status" id="status-user1">—</div>
+      </div>
+      <div class="couple-heart">💕</div>
+      <div class="couple-member">
+        <div class="member-avatar" id="avatar-user2">?</div>
+        <div class="member-name" id="name-user2">—</div>
+        <div class="member-status" id="status-user2">—</div>
+      </div>
+    </div>
+
+    <div class="couple-code-row">
+      Code couple : <span class="couple-code-val" id="coupleCode">——</span>
+    </div>
+
+    <button class="start-btn" id="startQuizBtn" onclick="startQuiz()">
+      Commencer mon questionnaire ✨
+    </button>
+
+    <button class="start-btn mt20" id="revealBtn" onclick="goToResults()"
+      style="display:none;background:linear-gradient(135deg,var(--lavender),var(--mint))">
+      💥 Révélation — on est prêt·e·s !
+    </button>
+
+    <div class="how-it-works">
+      <strong>💡 Comment ça marche ?</strong><br>
+      1. Chacun répond séparément — mode blind 🙈<br>
+      2. Les réponses sont <strong>sauvegardées en ligne</strong> 📱<br>
+      3. Quand vous êtes tous les deux prêt·e·s → <strong>révélation commune</strong> 💥<br>
+      4. Récap : profils, convergences, divergences, gages & lettres secrètes 💌
+    </div>
+
+    <button class="logout-btn" onclick="logout()">← Se déconnecter</button>
+  </div>
+
+  <!-- ═══════════ QUIZ ═══════════ -->
+  <div id="screen-quiz" class="screen">
+    <div class="quiz-top">
+      <div class="player-pill" id="quizPill"></div>
+      <div class="q-counter" id="qCounter"></div>
+    </div>
+    <div class="progress-dots" id="progressDots"></div>
+    <div class="q-card" id="qCard"></div>
+    <div class="q-nav">
+      <button class="btn-prev" id="btnPrev" onclick="navQ(-1)">← Précédent</button>
+      <button class="btn-next" id="btnNext" onclick="navQ(1)">Suivant →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ LETTRE ═══════════ -->
+  <div id="screen-letter" class="screen">
+    <div class="letter-title">💌 Lettre secrète</div>
+    <div class="letter-sub">Un message uniquement pour l'autre.<br>Il·elle ne le lira qu'à la révélation.</div>
+    <div class="letter-card">
+      <div class="letter-label" id="letterLabel"></div>
+      <textarea class="letter-area" id="letterArea"
+        placeholder="Écris ce que tu n'as jamais osé dire… 🌸"></textarea>
+    </div>
+    <div style="text-align:center;margin-top:24px">
+      <button class="start-btn" onclick="saveLetter()">Sceller ma lettre 💌</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ ATTENTE ═══════════ -->
+  <div id="screen-wait" class="screen">
+    <div class="wait-emoji">🌸</div>
+    <div class="wait-title">Questionnaire scellé !</div>
+    <div class="wait-text" id="waitText"></div>
+    <button class="wait-btn" id="waitBtn" onclick="goToResults()">
+      💥 Révélation ensemble !
+    </button>
+    <button class="logout-btn mt20" onclick="showScreen('screen-welcome')">← Retour à l'accueil</button>
+  </div>
+
+  <!-- ═══════════ RÉSULTATS ═══════════ -->
+  <div id="screen-results" class="screen">
+    <div class="results-title">💕 Nos Réponses</div>
+    <div class="results-sub">Votre bilan ✨</div>
+    <div id="resultsContent" style="width:100%"></div>
+    <div class="print-area">
+      <button class="print-btn" onclick="window.print()">🖨️ Sauvegarder en PDF</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// PROFILS ENNÉAGRAMME
+// ══════════════════════════════════════════════
+const ENNEAGRAM_PROFILES = {
+  1: {
+    name: 'Le Perfectionniste',
+    emoji: '📋',
+    quote: '"Bien faire ou ne pas faire."',
+    light: 'Intègre, fiable, travailleur·se, sens aigu de la justice, veut améliorer le monde.',
+    shadow: 'Rigide, critique, moralisateur·rice, se juge énormément. La colère est souvent rentrée.',
+    love: 'Partenaire dévoué·e et loyal·e mais peut être trop exigeant·e. A besoin qu\'on accepte son besoin de perfection sans le juger.',
+    color: '#e8f5e9', accent: '#43a047'
+  },
+  2: {
+    name: 'L\'Altruiste',
+    emoji: '🤗',
+    quote: '"Le bonheur des autres est le mien."',
+    light: 'Chaleureux·se, généreux·se, attentionné·e, ressent les besoins des autres instinctivement.',
+    shadow: 'Possessif·ve, manipulateur·rice par la séduction, donne pour recevoir sans le dire.',
+    love: 'Aime profondément et se sacrifie — mais attend la même chose en retour. A besoin de se sentir indispensable.',
+    color: '#fce4ec', accent: '#e91e63'
+  },
+  3: {
+    name: 'Le Battant',
+    emoji: '🏆',
+    quote: '"Je suis ce que j\'accomplis."',
+    light: 'Ambitieux·se, charismatique, efficace, inspire les autres par ses résultats.',
+    shadow: 'Superficiel·le, obsédé·e par l\'image, peut mentir pour paraître meilleur·e.',
+    love: 'Partenaire stimulant·e qui pousse à avancer — mais peut négliger l\'émotionnel. A besoin d\'être admiré·e.',
+    color: '#fff8e1', accent: '#ffb300'
+  },
+  4: {
+    name: 'Le Romantique',
+    emoji: '🎨',
+    quote: '"Je suis unique et c\'est ma force."',
+    light: 'Créatif·ve, profond·e, authentique, capable d\'une grande intensité émotionnelle.',
+    shadow: 'Dramatique, envieux·se, dans la victimisation, s\'enfonce dans la mélancolie.',
+    love: 'Aime avec une intensité rare — mais peut rendre la relation épuisante. A besoin de se sentir unique et compris·e.',
+    color: '#f3e5f5', accent: '#9c27b0'
+  },
+  5: {
+    name: 'L\'Observateur',
+    emoji: '🔭',
+    quote: '"Le savoir est le pouvoir."',
+    light: 'Intelligent·e, perspicace, indépendant·e, analyse tout avec profondeur.',
+    shadow: 'Froid·e, détaché·e, avare émotionnellement, s\'isole pour se protéger.',
+    love: 'Partenaire loyal·e et réfléchi·e — mais peut sembler distant·e. A besoin de beaucoup d\'espace pour s\'épanouir.',
+    color: '#e3f2fd', accent: '#1976d2'
+  },
+  6: {
+    name: 'Le Loyal',
+    emoji: '🛡️',
+    quote: '"Mieux vaut prévenir que guérir."',
+    light: 'Fiable, loyal·e, courageux·se quand ça compte, protège ceux qu\'il·elle aime.',
+    shadow: 'Anxieux·se, paranoïaque, remet tout en question, peut saboter ce qui va bien.',
+    love: 'Le·la partenaire le·la plus loyal·e qui soit — mais a besoin de beaucoup de réassurance. La trahison est sa plus grande blessure.',
+    color: '#e8eaf6', accent: '#3f51b5'
+  },
+  7: {
+    name: 'L\'Optimiste',
+    emoji: '🎉',
+    quote: '"La vie est trop courte pour s\'ennuyer."',
+    light: 'Enthousiaste, créatif·ve, spontané·e, apporte de la joie et de la légèreté.',
+    shadow: 'Fuyant·e, dispersé·e, évite la douleur et les sujets lourds, peut être irresponsable.',
+    love: 'Partenaire fun et stimulant·e — mais peut fuir dès que ça devient difficile. A besoin de liberté et de nouveauté.',
+    color: '#e0f7fa', accent: '#00897b'
+  },
+  8: {
+    name: 'Le Chef',
+    emoji: '🔥',
+    quote: '"Ne me cherche pas, tu me trouveras."',
+    light: 'Fort·e, protecteur·rice, honnête, loyal·e envers ceux qu\'il·elle aime, leadership naturel.',
+    shadow: 'Dominateur·rice, impulsif·ve, intimidant·e, du mal à montrer sa vulnérabilité.',
+    love: 'Protège férocement ceux qu\'il·elle aime — mais peut écraser sans s\'en rendre compte. A besoin de respect et d\'honnêteté totale.',
+    color: '#fbe9e7', accent: '#e64a19'
+  },
+  9: {
+    name: 'Le Médiateur',
+    emoji: '☮️',
+    quote: '"Tout va bien se passer."',
+    light: 'Calme, empathique, ouvert·e, sait voir tous les points de vue, apaisant·e.',
+    shadow: 'Passif·ve-agressif·ve, dans le déni, s\'oublie pour les autres, évite ses propres besoins.',
+    love: 'Partenaire doux·ce et stable — mais peut accumuler des rancœurs en silence. A besoin qu\'on lui fasse de la place pour s\'exprimer.',
+    color: '#f1f8e9', accent: '#7cb342'
+  }
+};
+
+// ══════════════════════════════════════════════
+// QUESTIONS
+// ══════════════════════════════════════════════
+const QUESTIONS = [
+  // ─── 🧠 Qui je suis (Ennéagramme) ───
+  { id:'e1', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Ce qui me motive le plus profondément c\'est…', options:[
+    { text:'Faire les choses bien et correctement', type:1 },
+    { text:'Être aimé·e et utile aux autres', type:2 },
+    { text:'Réussir et être reconnu·e', type:3 },
+    { text:'Être unique et authentique', type:4 },
+    { text:'Comprendre et maîtriser la connaissance', type:5 },
+    { text:'Me sentir en sécurité et soutenu·e', type:6 },
+    { text:'Vivre des expériences et rester libre', type:7 },
+    { text:'Être fort·e et protéger ce qui compte', type:8 },
+    { text:'Préserver la paix et l\'harmonie', type:9 },
+  ]},
+  { id:'e2', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Quand je me sens mal, j\'ai tendance à…', options:[
+    { text:'Critiquer et trouver ce qui ne va pas', type:1 },
+    { text:'Donner encore plus aux autres', type:2 },
+    { text:'Travailler encore plus dur', type:3 },
+    { text:'Me replier et dramatiser', type:4 },
+    { text:'M\'isoler et observer de loin', type:5 },
+    { text:'Chercher des signes de danger partout', type:6 },
+    { text:'Fuir et me distraire', type:7 },
+    { text:'Prendre le contrôle ou m\'énerver', type:8 },
+    { text:'M\'engourdir et éviter le conflit', type:9 },
+  ]},
+  { id:'e3', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Ma plus grande peur secrète c\'est…', options:[
+    { text:'Être imparfait·e ou dans l\'erreur', type:1 },
+    { text:'Ne pas être aimé·e ou voulu·e', type:2 },
+    { text:'Échouer ou être sans valeur', type:3 },
+    { text:'Ne pas avoir d\'identité propre', type:4 },
+    { text:'Être envahi·e ou incompétent·e', type:5 },
+    { text:'Être sans soutien ou guidé·e', type:6 },
+    { text:'Souffrir ou être privé·e', type:7 },
+    { text:'Être contrôlé·e ou vulnérable', type:8 },
+    { text:'Le conflit et la séparation', type:9 },
+  ]},
+  { id:'e4', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Les gens qui me connaissent bien diraient que je suis…', options:[
+    { text:'Rigoureux·se et exigeant·e', type:1 },
+    { text:'Généreux·se et attentionné·e', type:2 },
+    { text:'Ambitieux·se et efficace', type:3 },
+    { text:'Créatif·ve et intense', type:4 },
+    { text:'Réfléchi·e et discret·e', type:5 },
+    { text:'Loyal·e et prudent·e', type:6 },
+    { text:'Enthousiaste et spontané·e', type:7 },
+    { text:'Direct·e et déterminé·e', type:8 },
+    { text:'Calme et accommodant·e', type:9 },
+  ]},
+  { id:'e5', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Dans un groupe, je suis plutôt celui·celle qui…', options:[
+    { text:'S\'assure que tout est bien fait', type:1 },
+    { text:'Prend soin de tout le monde', type:2 },
+    { text:'Prend les devants et organise', type:3 },
+    { text:'Apporte une touche unique et créative', type:4 },
+    { text:'Observe et analyse avant de parler', type:5 },
+    { text:'Pose des questions et vérifie', type:6 },
+    { text:'Met l\'ambiance et propose des idées', type:7 },
+    { text:'Prend les décisions difficiles', type:8 },
+    { text:'Réconcilie et apaise les tensions', type:9 },
+  ]},
+  { id:'e6', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Ce dont je suis le plus fier·e chez moi…', options:[
+    { text:'Mon intégrité et mes principes', type:1 },
+    { text:'Ma capacité à aimer et donner', type:2 },
+    { text:'Mes accomplissements et résultats', type:3 },
+    { text:'Ma profondeur et ma sensibilité', type:4 },
+    { text:'Mon intelligence et ma perspicacité', type:5 },
+    { text:'Ma loyauté et ma fiabilité', type:6 },
+    { text:'Mon énergie et ma joie de vivre', type:7 },
+    { text:'Ma force et ma détermination', type:8 },
+    { text:'Ma patience et mon ouverture', type:9 },
+  ]},
+  { id:'e7', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Dans une dispute, je…', options:[
+    { text:'Explique rationnellement pourquoi j\'ai raison', type:1 },
+    { text:'Rappelle tout ce que j\'ai fait pour l\'autre', type:2 },
+    { text:'Veux régler ça vite pour avancer', type:3 },
+    { text:'Le vis très intensément et émotionnellement', type:4 },
+    { text:'Me détache et analyse la situation', type:5 },
+    { text:'Anticipe le pire et stresse', type:6 },
+    { text:'Essaie de dédramatiser ou change de sujet', type:7 },
+    { text:'Dis clairement ce que je pense sans filtre', type:8 },
+    { text:'Cède pour éviter l\'escalade', type:9 },
+  ]},
+  { id:'e8', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Ce qui m\'énerve le plus chez les autres…', options:[
+    { text:'Le laxisme et le manque de rigueur', type:1 },
+    { text:'L\'ingratitude et l\'indifférence', type:2 },
+    { text:'L\'incompétence et la lenteur', type:3 },
+    { text:'La superficialité et le manque d\'authenticité', type:4 },
+    { text:'L\'intrusion dans mon espace et ma vie', type:5 },
+    { text:'L\'imprévisibilité et le manque de fiabilité', type:6 },
+    { text:'La rigidité et le pessimisme', type:7 },
+    { text:'La faiblesse et la manipulation', type:8 },
+    { text:'L\'agressivité et les conflits inutiles', type:9 },
+  ]},
+  { id:'e9', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Pour moi, une relation saine c\'est avant tout…', options:[
+    { text:'Le respect des engagements et des valeurs', type:1 },
+    { text:'Se sentir indispensable et aimé·e', type:2 },
+    { text:'Avancer ensemble vers des objectifs communs', type:3 },
+    { text:'Une connexion profonde et unique', type:4 },
+    { text:'Le respect de mon espace et de mon intimité', type:5 },
+    { text:'La confiance et la stabilité', type:6 },
+    { text:'La légèreté, le fun et la liberté', type:7 },
+    { text:'L\'honnêteté totale et le respect mutuel', type:8 },
+    { text:'La tranquillité et l\'harmonie', type:9 },
+  ]},
+  { id:'e10', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Quand j\'aime quelqu\'un, je montre mon amour en…', options:[
+    { text:'L\'aidant à s\'améliorer et lui donnant des conseils', type:1 },
+    { text:'Faisant tout pour lui·elle, sans compter', type:2 },
+    { text:'Lui montrant que je réussis pour nous deux', type:3 },
+    { text:'Lui offrant une intensité émotionnelle unique', type:4 },
+    { text:'Partageant mes connaissances et mon monde intérieur', type:5 },
+    { text:'Étant toujours là, fiable et présent·e', type:6 },
+    { text:'Proposant des aventures et des surprises', type:7 },
+    { text:'Le·la protégeant et défendant ses intérêts', type:8 },
+    { text:'Étant une présence stable et apaisante', type:9 },
+  ]},
+  { id:'e11', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Ce qui me blesse le plus dans une relation…', options:[
+    { text:'Qu\'on ignore mes standards et mes efforts', type:1 },
+    { text:'Ne pas me sentir apprécié·e ou vu·e', type:2 },
+    { text:'Être perçu·e comme un·e raté·e', type:3 },
+    { text:'Me sentir ordinaire et incompris·e', type:4 },
+    { text:'Qu\'on envahisse mon espace ou mes pensées', type:5 },
+    { text:'Me sentir trahi·e ou abandonné·e', type:6 },
+    { text:'Me sentir coincé·e ou étouffé·e', type:7 },
+    { text:'Me sentir faible ou manipulé·e', type:8 },
+    { text:'Les tensions et l\'hostilité persistantes', type:9 },
+  ]},
+  { id:'e12', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Mon rapport à l\'argent et aux possessions…', options:[
+    { text:'Je suis rigoureux·se, je déteste le gaspillage', type:1 },
+    { text:'Je dépense volontiers pour les autres', type:2 },
+    { text:'L\'argent est un signe de réussite', type:3 },
+    { text:'Je préfère dépenser pour des expériences uniques', type:4 },
+    { text:'Je minimise mes besoins, je n\'aime pas dépendre', type:5 },
+    { text:'J\'aime avoir une sécurité financière solide', type:6 },
+    { text:'Je vis dans le présent, l\'argent est fait pour être dépensé', type:7 },
+    { text:'L\'argent c\'est du pouvoir et de la liberté', type:8 },
+    { text:'Je m\'en fiche tant que tout le monde est à l\'aise', type:9 },
+  ]},
+  { id:'e13', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Face à un problème difficile, mon premier réflexe c\'est…', options:[
+    { text:'Trouver la bonne solution méthodiquement', type:1 },
+    { text:'Demander comment je peux aider', type:2 },
+    { text:'Établir un plan d\'action immédiatement', type:3 },
+    { text:'Ressentir profondément avant d\'agir', type:4 },
+    { text:'Collecter toutes les informations possibles', type:5 },
+    { text:'Chercher l\'avis de personnes de confiance', type:6 },
+    { text:'Trouver une option créative et positive', type:7 },
+    { text:'Prendre le contrôle de la situation', type:8 },
+    { text:'Attendre que ça se tasse naturellement', type:9 },
+  ]},
+  { id:'e14', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Mon plus grand défaut que je reconnais…', options:[
+    { text:'Je suis trop critique envers moi·même et les autres', type:1 },
+    { text:'J\'ai du mal à recevoir sans donner en retour', type:2 },
+    { text:'Je peux être trop dans l\'image que je renvoie', type:3 },
+    { text:'Je m\'emballe émotionnellement trop vite', type:4 },
+    { text:'Je me coupe du monde pour préserver mon énergie', type:5 },
+    { text:'Je doute trop et cherche des garanties', type:6 },
+    { text:'J\'évite les sujets douloureux ou lourds', type:7 },
+    { text:'Je peux être trop direct·e et brusque', type:8 },
+    { text:'J\'ai du mal à prendre position clairement', type:9 },
+  ]},
+  { id:'e15', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Ce que je recherche dans mes amitiés…', options:[
+    { text:'Des gens sérieux et fiables qui respectent leurs engagements', type:1 },
+    { text:'Des gens à qui je peux me rendre utile', type:2 },
+    { text:'Des gens qui m\'inspirent et me poussent à avancer', type:3 },
+    { text:'Des gens qui me comprennent vraiment en profondeur', type:4 },
+    { text:'Des gens qui respectent mon espace et ma solitude', type:5 },
+    { text:'Des gens sur qui je peux compter sans condition', type:6 },
+    { text:'Des gens fun avec qui vivre des aventures', type:7 },
+    { text:'Des gens honnêtes et forts qui ne me décevront pas', type:8 },
+    { text:'Des gens calmes et sans drama', type:9 },
+  ]},
+  { id:'e16', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Quand je dois prendre une grande décision…', options:[
+    { text:'Je fais ce qui est juste, même si c\'est difficile', type:1 },
+    { text:'Je pense d\'abord à comment ça affecte les autres', type:2 },
+    { text:'Je choisis ce qui maximise mes chances de succès', type:3 },
+    { text:'Je suis mon instinct et mes émotions', type:4 },
+    { text:'J\'analyse toutes les données avant de bouger', type:5 },
+    { text:'Je consulte des gens de confiance et évalue les risques', type:6 },
+    { text:'Je choisis l\'option la plus excitante et positive', type:7 },
+    { text:'Je fais ce que je veux, c\'est ma vie', type:8 },
+    { text:'J\'essaie de trouver la solution qui convient à tout le monde', type:9 },
+  ]},
+  { id:'e17', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Ce que les gens ne voient pas de moi au premier abord…', options:[
+    { text:'À quel point je doute de moi malgré mes exigences', type:1 },
+    { text:'Que j\'ai aussi besoin qu\'on prenne soin de moi', type:2 },
+    { text:'À quel point j\'ai peur d\'échouer', type:3 },
+    { text:'Que derrière l\'intensité il y a une grande fragilité', type:4 },
+    { text:'À quel point je ressens les choses intensément', type:5 },
+    { text:'Que je suis capable d\'une grande audace', type:6 },
+    { text:'Que j\'ai aussi une face sombre et mélancolique', type:7 },
+    { text:'À quel point je suis sensible et vulnérable', type:8 },
+    { text:'Que j\'ai des opinions très fortes que je n\'exprime pas', type:9 },
+  ]},
+  { id:'e18', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Ce dont j\'ai le plus besoin pour me sentir bien…', options:[
+    { text:'Que les choses soient ordonnées et bien faites', type:1 },
+    { text:'Me sentir aimé·e et apprécié·e', type:2 },
+    { text:'Sentir que j\'avance et que je réussis', type:3 },
+    { text:'Me sentir unique et compris·e', type:4 },
+    { text:'Du temps seul·e pour recharger mes batteries', type:5 },
+    { text:'Me sentir en sécurité et soutenu·e', type:6 },
+    { text:'De la nouveauté, de la stimulation, de la liberté', type:7 },
+    { text:'Avoir le contrôle de ma vie et de mes choix', type:8 },
+    { text:'La paix intérieure et extérieure', type:9 },
+  ]},
+  { id:'e19', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Mon rapport au travail…', options:[
+    { text:'Je fais bien les choses ou je ne les fais pas', type:1 },
+    { text:'J\'aime aider et travailler en équipe', type:2 },
+    { text:'Je veux exceller et être reconnu·e', type:3 },
+    { text:'Je cherche un travail qui a du sens et m\'exprime', type:4 },
+    { text:'Je préfère travailler seul·e et en profondeur', type:5 },
+    { text:'J\'ai besoin d\'un cadre stable et fiable', type:6 },
+    { text:'J\'aime la variété et les nouveaux défis', type:7 },
+    { text:'Je prends naturellement les commandes', type:8 },
+    { text:'Je m\'adapte et évite les tensions inutiles', type:9 },
+  ]},
+  { id:'e20', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Quand quelqu\'un me fait du mal…', options:[
+    { text:'Je lui explique clairement ses torts', type:1 },
+    { text:'Je me demande ce que j\'ai mal fait', type:2 },
+    { text:'Je passe à autre chose et avance', type:3 },
+    { text:'Je le vis très intensément et longtemps', type:4 },
+    { text:'Je me retire et coupe le contact', type:5 },
+    { text:'Je remets en question la relation et surveille', type:6 },
+    { text:'J\'essaie de voir le bon côté et tourne la page', type:7 },
+    { text:'Je le dis directement et sans détour', type:8 },
+    { text:'Je garde pour moi pour éviter le conflit', type:9 },
+  ]},
+  { id:'e21', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Ma relation au temps libre…', options:[
+    { text:'J\'organise mes loisirs de façon productive', type:1 },
+    { text:'Je le passe souvent à aider ou rendre service', type:2 },
+    { text:'Je l\'utilise pour progresser ou networker', type:3 },
+    { text:'Je crée, j\'explore, je vis des choses intenses', type:4 },
+    { text:'Je lis, j\'apprends, je me ressource seul·e', type:5 },
+    { text:'Je reste dans mes habitudes rassurantes', type:6 },
+    { text:'Je cherche de nouvelles aventures et expériences', type:7 },
+    { text:'Je fais exactement ce que je veux', type:8 },
+    { text:'Je me repose et profite sans pression', type:9 },
+  ]},
+  { id:'e22', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Si je pouvais changer une chose dans le monde…', options:[
+    { text:'Plus de justice et d\'éthique partout', type:1 },
+    { text:'Plus d\'amour et de solidarité', type:2 },
+    { text:'Plus de méritocratie et d\'opportunités', type:3 },
+    { text:'Plus de beauté et d\'authenticité', type:4 },
+    { text:'Plus de sagesse et de connaissance partagée', type:5 },
+    { text:'Plus de sécurité et de protection pour tous', type:6 },
+    { text:'Plus de bonheur et de légèreté', type:7 },
+    { text:'Plus d\'honnêteté et moins de corruption', type:8 },
+    { text:'Plus de paix et moins de conflits', type:9 },
+  ]},
+  { id:'e23', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'La phrase qui me ressemble le plus…', options:[
+    { text:'"Bien faire ou ne pas faire"', type:1 },
+    { text:'"Le bonheur des autres est le mien"', type:2 },
+    { text:'"Je suis ce que j\'accomplis"', type:3 },
+    { text:'"Je suis différent·e et c\'est ma force"', type:4 },
+    { text:'"Le savoir est le pouvoir"', type:5 },
+    { text:'"Mieux vaut prévenir que guérir"', type:6 },
+    { text:'"La vie est trop courte pour s\'ennuyer"', type:7 },
+    { text:'"Ne me cherche pas, tu me trouveras"', type:8 },
+    { text:'"Tout va bien se passer"', type:9 },
+  ]},
+  { id:'e24', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'En vacances, je préfère…', options:[
+    { text:'Un programme bien organisé et culturel', type:1 },
+    { text:'Voyager avec des proches et créer des souvenirs', type:2 },
+    { text:'Des destinations prestigieuses et instagrammables', type:3 },
+    { text:'Des endroits uniques et hors des sentiers battus', type:4 },
+    { text:'Me ressourcer seul·e dans un endroit calme', type:5 },
+    { text:'Un endroit connu et rassurant', type:6 },
+    { text:'L\'aventure et la spontanéité totale', type:7 },
+    { text:'Faire ce que je veux sans contrainte', type:8 },
+    { text:'Quelque chose de reposant qui convient à tout le monde', type:9 },
+  ]},
+  { id:'e25', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Mon rapport aux règles…', options:[
+    { text:'Les règles existent pour une raison, je les respecte', type:1 },
+    { text:'Je les respecte si ça préserve l\'harmonie du groupe', type:2 },
+    { text:'Je les utilise à mon avantage quand c\'est utile', type:3 },
+    { text:'Je les questionne si elles brident ma créativité', type:4 },
+    { text:'Je les analyse avant de décider si elles ont du sens', type:5 },
+    { text:'Je les respecte par sécurité mais les questionne', type:6 },
+    { text:'Je les contourne si elles limitent ma liberté', type:7 },
+    { text:'Je fais mes propres règles', type:8 },
+    { text:'Je m\'y plie pour éviter les frictions', type:9 },
+  ]},
+  { id:'e26', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Ce que je ne supporte vraiment pas…', options:[
+    { text:'L\'injustice et le travail bâclé', type:1 },
+    { text:'Me sentir ignoré·e ou rejeté·e', type:2 },
+    { text:'Perdre ou être perçu·e comme un·e perdant·e', type:3 },
+    { text:'La banalité et le manque de profondeur', type:4 },
+    { text:'Le bruit, les intrusions, le manque d\'espace', type:5 },
+    { text:'L\'incertitude et les situations imprévisibles', type:6 },
+    { text:'La monotonie et les gens négatifs', type:7 },
+    { text:'Qu\'on me dicte quoi faire ou penser', type:8 },
+    { text:'Les tensions, les cris, l\'agressivité', type:9 },
+  ]},
+  { id:'e27', cat:'🧠 Qui je suis', type:'chips-enneagram', text:'Dans 10 ans, j\'aimerais qu\'on dise de moi…', options:[
+    { text:'C\'était quelqu\'un d\'intègre et de droit', type:1 },
+    { text:'Il·elle a changé ma vie par sa générosité', type:2 },
+    { text:'Il·elle a accompli des choses extraordinaires', type:3 },
+    { text:'Il·elle était unique et laisse une trace', type:4 },
+    { text:'Il·elle était d\'une intelligence rare', type:5 },
+    { text:'Il·elle était toujours là quand on avait besoin', type:6 },
+    { text:'Il·elle a vécu pleinement et sans regrets', type:7 },
+    { text:'Il·elle était quelqu\'un de vrai, sans compromis', type:8 },
+    { text:'Il·elle apportait la paix partout où il·elle allait', type:9 },
+  ]},
+
+  // ─── 💞 Nous deux ───
+  { id:'n1', cat:'💞 Nous deux', type:'text', text:'En 3 mots, notre relation c\'est…', placeholder:'Ex : douce, intense, drôle…' },
+  { id:'n2', cat:'💞 Nous deux', type:'textarea', text:'Le souvenir qui te fait encore sourire quand tu y penses ?', placeholder:'Un moment, une image, une sensation…' },
+  { id:'n3', cat:'💞 Nous deux', type:'textarea', text:'Si tu devais décrire notre relation à quelqu\'un qui ne nous connaît pas, tu dirais quoi ?', placeholder:'Librement…' },
+  { id:'n4', cat:'💞 Nous deux', type:'scale', text:'Est-ce que tu te sens pleinement toi-même dans notre relation ?', min:1, max:10, labels:['😶 Pas vraiment','🌟 Totalement'] },
+  { id:'n5', cat:'💞 Nous deux', type:'textarea', text:'Qu\'est-ce que notre relation t\'a appris sur toi-même ?', placeholder:'Sur tes besoins, tes limites, tes forces…' },
+  { id:'n6', cat:'💞 Nous deux', type:'textarea', text:'Y a-t-il quelque chose que tu aurais voulu faire différemment depuis le début ?', placeholder:'Sans jugement, espace safe 💙' },
+  { id:'n7', cat:'💞 Nous deux', type:'textarea', text:'Qu\'est-ce qui te rend le plus fier·e de ce qu\'on a construit ?', placeholder:'Ce que vous avez surmonté, créé, partagé…' },
+
+  // ─── 💬 Comment on communique ───
+  { id:'c1', cat:'💬 Comment on communique', type:'chips', text:'Quand je suis blessé·e, j\'ai tendance à…', options:['🤐 Me taire','🗣️ En parler vite','💭 Ruminer','🚶 M\'éloigner','😤 M\'énerver'] },
+  { id:'c2', cat:'💬 Comment on communique', type:'textarea', text:'Y a-t-il un sujet qu\'on évite et qu\'on devrait vraiment aborder ?', placeholder:'Sois honnête·e 💙' },
+  { id:'c3', cat:'💬 Comment on communique', type:'scale', text:'Est-ce que tu te sens libre de me dire ce qui te dérange, sans avoir peur de ma réaction ?', min:1, max:10, labels:['😨 Pas du tout','💚 Totalement'] },
+  { id:'c4', cat:'💬 Comment on communique', type:'textarea', text:'Quand on se dispute, qu\'est-ce qui t\'aiderait à te sentir entendu·e ?', placeholder:'Du temps ? Des mots précis ? Un geste ?' },
+  { id:'c5', cat:'💬 Comment on communique', type:'scale', text:'Est-ce qu\'on se dit suffisamment ce qu\'on apprécie chez l\'autre ?', min:1, max:10, labels:['😕 Pas assez','💖 Oui vraiment'] },
+  { id:'c6', cat:'💬 Comment on communique', type:'chips', text:'Mon langage de l\'amour principal ?', options:['🗣️ Mots doux','⏰ Temps ensemble','🎁 Cadeaux','🤝 Services rendus','🤗 Contact physique'] },
+  { id:'c7', cat:'💬 Comment on communique', type:'textarea', text:'Y a-t-il quelque chose que tu voudrais me dire depuis longtemps mais que tu n\'as pas osé ?', placeholder:'Espace safe, vraiment 💙' },
+  { id:'c8', cat:'💬 Comment on communique', type:'textarea', text:'Qu\'est-ce que je fais qui te blesse sans m\'en rendre compte ?', placeholder:'Un comportement, une habitude, un mot…' },
+
+  // ─── 🌠 Notre avenir ───
+  { id:'a1', cat:'🌠 Notre avenir', type:'textarea', text:'Dans 5 ans, j\'aimerais qu\'on soit…', placeholder:'Même ville ? Emménagés ? En voyage ?' },
+  { id:'a2', cat:'🌠 Notre avenir', type:'textarea', text:'Y a-t-il une chose dans ton avenir personnel que tu n\'es pas sûr·e de pouvoir concilier avec notre relation ?', placeholder:'Projet pro, ville, mode de vie…' },
+  { id:'a3', cat:'🌠 Notre avenir', type:'textarea', text:'La grande question qu\'on devrait vraiment aborder bientôt ?', placeholder:'Cohabitation, famille, projets pro…' },
+  { id:'a4', cat:'🌠 Notre avenir', type:'textarea', text:'Qu\'est-ce qui te ferait choisir de rester, même dans les moments difficiles ?', placeholder:'Ce qui ancre, ce qui tient…' },
+  { id:'a5', cat:'🌠 Notre avenir', type:'textarea', text:'Y a-t-il quelque chose dans mon mode de vie que tu aimerais que je change pour notre futur commun ?', placeholder:'Honnêtement…' },
+  { id:'a6', cat:'🌠 Notre avenir', type:'textarea', text:'Comment tu imagines la répartition des rôles si on vivait ensemble ?', placeholder:'Tâches, organisation, équilibre…' },
+  { id:'a7', cat:'🌠 Notre avenir', type:'chips', text:'Est-ce que tu veux des enfants un jour ?', options:['👶 Oui, clairement','🤔 Peut-être','⏳ Trop tôt pour décider','🚫 Non'] },
+  { id:'a8', cat:'🌠 Notre avenir', type:'textarea', text:'Si oui — dans combien de temps tu t\'imagines prêt·e à y penser sérieusement ?', placeholder:'Dans 2 ans, 5 ans, quand on sera installés…' },
+  { id:'a9', cat:'🌠 Notre avenir', type:'chips', text:'Le mariage — c\'est quelque chose qui compte pour toi ?', options:['💍 Oui, j\'y tiens','🤍 Pourquoi pas','🙅 Non, pas nécessaire','🤔 Je ne sais pas encore'] },
+  { id:'a10', cat:'🌠 Notre avenir', type:'textarea', text:'Dans combien de temps tu t\'imagines prêt·e à envisager la question du mariage ?', placeholder:'Dans 1 an, 3 ans, quand on sera prêts…' },
+
+  // ─── 🎀 Pour finir ───
+  { id:'o1', cat:'🎀 Pour finir', type:'textarea', text:'Comment tu définirais nos limites — ce qui est ok et ce qui ne l\'est pas ?', placeholder:'Fidélité, transparence, intimité avec les autres…' },
+  { id:'o2', cat:'🎀 Pour finir', type:'scale', text:'Est-ce que tu penses qu\'on se choisit encore, chaque jour ?', min:1, max:10, labels:['🤔 Pas sûr·e','💕 Absolument'] },
+  { id:'o3', cat:'🎀 Pour finir', type:'textarea', text:'Qu\'est-ce que tu voudrais que je sache sur ce dont tu as besoin pour être heureux·se avec moi ?', placeholder:'Tes besoins profonds, pas les superficiels…' },
+  { id:'o4', cat:'🎀 Pour finir', type:'textarea', text:'Y a-t-il quelque chose que tu retiens contre moi sans me le dire ?', placeholder:'Pas obligatoire — mais l\'espace est là 💙' },
+  { id:'official', cat:'🎀 Pour finir', type:'official', text:'SPECIAL' },
+  { id:'o5', cat:'🎀 Pour finir', type:'textarea', text:'Ce que je veux te promettre pour nos prochaines années…', placeholder:'Quelque chose de vrai, de toi 🤍' },
+];
+</script>
+<script src="script.js"></script>
+</body>
+</html>

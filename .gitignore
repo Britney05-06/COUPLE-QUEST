@@ -1,0 +1,6 @@
+node_modules/
+.env
+frontend/assets/*.png
+frontend/assets/*.jpg
+frontend/assets/*.jpeg
+frontend/assets/*.webp
