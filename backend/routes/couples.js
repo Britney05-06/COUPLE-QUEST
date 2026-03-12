@@ -121,3 +121,27 @@ router.get('/me', auth, async (req, res) => {
 });
 
 module.exports = router;
+
+// ─── Quitter le couple ───
+router.delete('/leave', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { data: couple } = await db
+      .from('couples')
+      .select('*')
+      .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+      .single();
+
+    if (!couple) return res.status(404).json({ error: 'Couple introuvable' });
+
+    // Supprimer les réponses et lettres du couple
+    await db.from('answers').delete().eq('couple_id', couple.id);
+    await db.from('letters').delete().eq('couple_id', couple.id);
+    await db.from('couples').delete().eq('id', couple.id);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Leave couple error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});

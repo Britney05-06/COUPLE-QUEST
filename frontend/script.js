@@ -951,3 +951,33 @@ window.renderResults = function(data) {
     renderAIAnalysis(data.aiAnalysis, cont);
   }
 };
+
+// ══════════════════════════════════════════════
+// QUITTER LE COUPLE
+// ══════════════════════════════════════════════
+async function leaveCouple() {
+  const confirmed = confirm('Quitter le couple ? Le code sera annulé et toutes les réponses supprimées.');
+  if (!confirmed) return;
+  showLoading('Dissolution du couple…');
+  try {
+    await apiFetch('/couples/leave', { method: 'DELETE' });
+    coupleData = null;
+    renderCoupleSetup();
+    showScreen('screen-couple-setup');
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+// ══════════════════════════════════════════════
+// RECOMMENCER LE QUIZ
+// ══════════════════════════════════════════════
+function restartQuiz() {
+  const confirmed = confirm('Recommencer depuis le début ? Tes réponses en cours seront perdues.');
+  if (!confirmed) return;
+  currentQ = 0;
+  answers = {};
+  renderQuestion();
+}
