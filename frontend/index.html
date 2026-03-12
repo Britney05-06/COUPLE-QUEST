@@ -137,7 +137,54 @@
       4. Récap : profils, convergences, divergences, gages & lettres secrètes 💌
     </div>
 
-    <button class="logout-btn" onclick="logout()">← Se déconnecter</button>
+    <div style="display:flex;gap:12px;margin-top:16px;width:100%;max-width:400px">
+      <button class="logout-btn" style="flex:1;margin:0" onclick="showScreen('screen-settings')">⚙️ Paramètres</button>
+      <button class="logout-btn" style="flex:1;margin:0" onclick="logout()">← Déconnexion</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ PARAMÈTRES ═══════════ -->
+  <div id="screen-settings" class="screen">
+    <div style="padding-top:40px;text-align:center;width:100%;margin-bottom:24px">
+      <div class="welcome-big" style="font-size:1.8rem">⚙️ Paramètres</div>
+    </div>
+
+    <div class="auth-form" style="max-width:400px">
+      <div style="font-weight:800;color:var(--text);font-size:1rem;margin-bottom:4px">Mon profil</div>
+
+      <label class="photo-upload-area" for="settings-photo">
+        <div class="photo-placeholder" id="settingsPhotoPlaceholder">📷</div>
+        <img class="photo-preview" id="settingsPhotoPreview" alt="Ta photo">
+        <div>
+          <div class="upload-label">Changer ma photo</div>
+          <div class="upload-sub">JPG, PNG — max 5MB</div>
+        </div>
+      </label>
+      <input type="file" id="settings-photo" accept="image/*" style="display:none" onchange="previewSettingsPhoto(this)">
+
+      <input class="auth-input" type="text" id="settings-prenom" placeholder="Ton prénom">
+      <input class="auth-input" type="email" id="settings-email" placeholder="Ton email">
+      <input class="auth-input" type="password" id="settings-password" placeholder="Nouveau mot de passe (optionnel)">
+
+      <div id="settingsError" class="auth-error"></div>
+      <div id="settingsSuccess" style="background:#e8f5e9;color:#388e3c;border-radius:12px;padding:10px 14px;font-size:0.85rem;font-weight:700;display:none">
+        ✅ Profil mis à jour !
+      </div>
+
+      <button class="auth-btn" onclick="saveSettings()">Sauvegarder les modifications</button>
+    </div>
+
+    <div class="auth-form" style="max-width:400px;margin-top:16px;border:2px solid #FFE0E0">
+      <div style="font-weight:800;color:var(--red);font-size:0.95rem;margin-bottom:8px">⚠️ Zone dangereuse</div>
+      <div style="font-size:0.85rem;color:var(--text-light);font-weight:600;margin-bottom:14px">
+        La suppression de ton compte est irréversible. Toutes tes réponses et ta lettre secrète seront perdues.
+      </div>
+      <button onclick="deleteAccount()" style="background:#FFE0E0;color:var(--red);border:2px solid var(--red);padding:12px;border-radius:50px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;width:100%;transition:all 0.2s">
+        🗑️ Supprimer mon compte
+      </button>
+    </div>
+
+    <button class="logout-btn mt20" onclick="showScreen('screen-welcome')">← Retour</button>
   </div>
 
   <!-- ═══════════ QUIZ ═══════════ -->
@@ -186,6 +233,7 @@
     <div id="resultsContent" style="width:100%"></div>
     <div class="print-area">
       <button class="print-btn" onclick="window.print()">🖨️ Sauvegarder en PDF</button>
+      <button class="print-btn" style="margin-top:8px" onclick="showScreen('screen-welcome')">← Retour à l'accueil</button>
     </div>
   </div>
 
@@ -197,8 +245,7 @@
 // ══════════════════════════════════════════════
 const ENNEAGRAM_PROFILES = {
   1: {
-    name: 'Le Perfectionniste',
-    emoji: '📋',
+    name: 'Le Perfectionniste', emoji: '📋',
     quote: '"Bien faire ou ne pas faire."',
     light: 'Intègre, fiable, travailleur·se, sens aigu de la justice, veut améliorer le monde.',
     shadow: 'Rigide, critique, moralisateur·rice, se juge énormément. La colère est souvent rentrée.',
@@ -206,8 +253,7 @@ const ENNEAGRAM_PROFILES = {
     color: '#e8f5e9', accent: '#43a047'
   },
   2: {
-    name: 'L\'Altruiste',
-    emoji: '🤗',
+    name: 'L\'Altruiste', emoji: '🤗',
     quote: '"Le bonheur des autres est le mien."',
     light: 'Chaleureux·se, généreux·se, attentionné·e, ressent les besoins des autres instinctivement.',
     shadow: 'Possessif·ve, manipulateur·rice par la séduction, donne pour recevoir sans le dire.',
@@ -215,8 +261,7 @@ const ENNEAGRAM_PROFILES = {
     color: '#fce4ec', accent: '#e91e63'
   },
   3: {
-    name: 'Le Battant',
-    emoji: '🏆',
+    name: 'Le Battant', emoji: '🏆',
     quote: '"Je suis ce que j\'accomplis."',
     light: 'Ambitieux·se, charismatique, efficace, inspire les autres par ses résultats.',
     shadow: 'Superficiel·le, obsédé·e par l\'image, peut mentir pour paraître meilleur·e.',
@@ -224,8 +269,7 @@ const ENNEAGRAM_PROFILES = {
     color: '#fff8e1', accent: '#ffb300'
   },
   4: {
-    name: 'Le Romantique',
-    emoji: '🎨',
+    name: 'Le Romantique', emoji: '🎨',
     quote: '"Je suis unique et c\'est ma force."',
     light: 'Créatif·ve, profond·e, authentique, capable d\'une grande intensité émotionnelle.',
     shadow: 'Dramatique, envieux·se, dans la victimisation, s\'enfonce dans la mélancolie.',
@@ -233,8 +277,7 @@ const ENNEAGRAM_PROFILES = {
     color: '#f3e5f5', accent: '#9c27b0'
   },
   5: {
-    name: 'L\'Observateur',
-    emoji: '🔭',
+    name: 'L\'Observateur', emoji: '🔭',
     quote: '"Le savoir est le pouvoir."',
     light: 'Intelligent·e, perspicace, indépendant·e, analyse tout avec profondeur.',
     shadow: 'Froid·e, détaché·e, avare émotionnellement, s\'isole pour se protéger.',
@@ -242,8 +285,7 @@ const ENNEAGRAM_PROFILES = {
     color: '#e3f2fd', accent: '#1976d2'
   },
   6: {
-    name: 'Le Loyal',
-    emoji: '🛡️',
+    name: 'Le Loyal', emoji: '🛡️',
     quote: '"Mieux vaut prévenir que guérir."',
     light: 'Fiable, loyal·e, courageux·se quand ça compte, protège ceux qu\'il·elle aime.',
     shadow: 'Anxieux·se, paranoïaque, remet tout en question, peut saboter ce qui va bien.',
@@ -251,8 +293,7 @@ const ENNEAGRAM_PROFILES = {
     color: '#e8eaf6', accent: '#3f51b5'
   },
   7: {
-    name: 'L\'Optimiste',
-    emoji: '🎉',
+    name: 'L\'Optimiste', emoji: '🎉',
     quote: '"La vie est trop courte pour s\'ennuyer."',
     light: 'Enthousiaste, créatif·ve, spontané·e, apporte de la joie et de la légèreté.',
     shadow: 'Fuyant·e, dispersé·e, évite la douleur et les sujets lourds, peut être irresponsable.',
@@ -260,8 +301,7 @@ const ENNEAGRAM_PROFILES = {
     color: '#e0f7fa', accent: '#00897b'
   },
   8: {
-    name: 'Le Chef',
-    emoji: '🔥',
+    name: 'Le Chef', emoji: '🔥',
     quote: '"Ne me cherche pas, tu me trouveras."',
     light: 'Fort·e, protecteur·rice, honnête, loyal·e envers ceux qu\'il·elle aime, leadership naturel.',
     shadow: 'Dominateur·rice, impulsif·ve, intimidant·e, du mal à montrer sa vulnérabilité.',
@@ -269,8 +309,7 @@ const ENNEAGRAM_PROFILES = {
     color: '#fbe9e7', accent: '#e64a19'
   },
   9: {
-    name: 'Le Médiateur',
-    emoji: '☮️',
+    name: 'Le Médiateur', emoji: '☮️',
     quote: '"Tout va bien se passer."',
     light: 'Calme, empathique, ouvert·e, sait voir tous les points de vue, apaisant·e.',
     shadow: 'Passif·ve-agressif·ve, dans le déni, s\'oublie pour les autres, évite ses propres besoins.',

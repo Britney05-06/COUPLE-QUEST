@@ -1,123 +1,166 @@
-// backend/routes/auth.js
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
-const supabase = require('../db');
+const db = require('../db');
+const auth = require('../middleware/auth');
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) cb(null, true);
-    else cb(new Error('Seules les images sont acceptées'));
-  }
+  limits: { fileSize: 5 * 1024 * 1024 }
 });
 
-// POST /api/auth/register
+// ─── Register ───
 router.post('/register', upload.single('photo'), async (req, res) => {
   try {
     const { prenom, email, password } = req.body;
-    if (!prenom || !email || !password) {
-      return res.status(400).json({ error: 'Prénom, email et mot de passe requis' });
-    }
+    if (!prenom || !email || !password)
+      return res.status(400).json({ error: 'Champs manquants' });
 
-    const { data: existing } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', email.toLowerCase())
-      .single();
-
-    if (existing) {
-      return res.status(409).json({ error: 'Cet email est déjà utilisé' });
-    }
+    const { data: existing } = await db.from('users').select('id').eq('email', email).single();
+    if (existing) return res.status(400).json({ error: 'Email déjà utilisé' });
 
     const password_hash = await bcrypt.hash(password, 10);
 
     let photo_url = null;
     if (req.file) {
-      const ext = req.file.mimetype.split('/')[1];
-      const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error: uploadError } = await supabase.storage
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${req.file.mimetype.split('/')[1]}`;
+      const { error: uploadError } = await db.storage
         .from('avatars')
-        .upload(filename, req.file.buffer, { contentType: req.file.mimetype });
+        .upload(fileName, req.file.buffer, { contentType: req.file.mimetype });
       if (!uploadError) {
-        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filename);
+        const { data: urlData } = db.storage.from('avatars').getPublicUrl(fileName);
         photo_url = urlData.publicUrl;
       }
     }
 
-    const { data: user, error } = await supabase
-      .from('users')
-      .insert({ prenom, email: email.toLowerCase(), password_hash, photo_url })
+    const { data: user, error } = await db.from('users')
+      .insert({ prenom, email, password_hash, photo_url })
       .select('id, prenom, email, photo_url')
       .single();
 
     if (error) throw error;
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email, prenom: user.prenom },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.status(201).json({ token, user: { id: user.id, prenom: user.prenom, email: user.email, photo_url: user.photo_url } });
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    res.json({ token, user });
   } catch (err) {
     console.error('Register error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 
-// POST /api/auth/login
+// ─── Login ───
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) {
+    if (!email || !password)
       return res.status(400).json({ error: 'Email et mot de passe requis' });
-    }
 
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('id, prenom, email, password_hash, photo_url')
-      .eq('email', email.toLowerCase())
+    const { data: user } = await db.from('users')
+      .select('*')
+      .eq('email', email)
       .single();
 
-    if (error || !user) {
-      return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
-    }
+    if (!user) return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
 
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) {
-      return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
-    }
+    if (!valid) return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email, prenom: user.prenom },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.json({ token, user: { id: user.id, prenom: user.prenom, email: user.email, photo_url: user.photo_url } });
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    const { password_hash, ...safeUser } = user;
+    res.json({ token, user: safeUser });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 
-// GET /api/auth/me
-const authMiddleware = require('../middleware/auth');
-router.get('/me', authMiddleware, async (req, res) => {
+// ─── Me ───
+router.get('/me', auth, async (req, res) => {
   try {
-    const { data: user, error } = await supabase
-      .from('users')
+    const { data: user } = await db.from('users')
       .select('id, prenom, email, photo_url')
       .eq('id', req.user.id)
       .single();
+    if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
 
-    if (error || !user) return res.status(404).json({ error: 'Utilisateur introuvable' });
+// ─── Modifier le profil ───
+router.patch('/me', auth, upload.single('photo'), async (req, res) => {
+  try {
+    const { prenom, email, password } = req.body;
+    const updates = {};
+
+    if (prenom) updates.prenom = prenom;
+    if (email) {
+      const { data: existing } = await db.from('users')
+        .select('id').eq('email', email).neq('id', req.user.id).single();
+      if (existing) return res.status(400).json({ error: 'Email déjà utilisé' });
+      updates.email = email;
+    }
+    if (password) {
+      if (password.length < 6) return res.status(400).json({ error: 'Mot de passe trop court' });
+      updates.password_hash = await bcrypt.hash(password, 10);
+    }
+
+    if (req.file) {
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${req.file.mimetype.split('/')[1]}`;
+      const { error: uploadError } = await db.storage
+        .from('avatars')
+        .upload(fileName, req.file.buffer, { contentType: req.file.mimetype });
+      if (!uploadError) {
+        const { data: urlData } = db.storage.from('avatars').getPublicUrl(fileName);
+        updates.photo_url = urlData.publicUrl;
+      }
+    }
+
+    const { data: user, error } = await db.from('users')
+      .update(updates)
+      .eq('id', req.user.id)
+      .select('id, prenom, email, photo_url')
+      .single();
+
+    if (error) throw error;
     res.json({ user });
   } catch (err) {
+    console.error('Update profile error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// ─── Supprimer le compte ───
+router.delete('/me', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Récupérer le couple
+    const { data: couple } = await db.from('couples')
+      .select('*')
+      .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+      .single();
+
+    if (couple) {
+      // Si user1 supprime → supprimer le couple entier
+      // Si user2 supprime → juste le détacher
+      if (couple.user1_id === userId) {
+        await db.from('couples').delete().eq('id', couple.id);
+      } else {
+        await db.from('couples').update({ user2_id: null }).eq('id', couple.id);
+      }
+    }
+
+    await db.from('answers').delete().eq('user_id', userId);
+    await db.from('letters').delete().eq('from_user_id', userId);
+    await db.from('users').delete().eq('id', userId);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete account error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });

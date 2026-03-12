@@ -766,3 +766,188 @@ function showReaction(cb) {
   popup.classList.add('show');
   setTimeout(() => { popup.classList.remove('show'); if (cb) cb(); }, 1000);
 }
+
+// ══════════════════════════════════════════════
+// PARAMÈTRES
+// ══════════════════════════════════════════════
+function previewSettingsPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const preview = document.getElementById('settingsPhotoPreview');
+    const placeholder = document.getElementById('settingsPhotoPlaceholder');
+    preview.src = e.target.result;
+    preview.style.display = 'block';
+    placeholder.style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderSettingsScreen() {
+  if (!currentUser) return;
+  document.getElementById('settings-prenom').value = currentUser.prenom || '';
+  document.getElementById('settings-email').value = currentUser.email || '';
+  document.getElementById('settings-password').value = '';
+  const preview = document.getElementById('settingsPhotoPreview');
+  const placeholder = document.getElementById('settingsPhotoPlaceholder');
+  if (currentUser.photo_url) {
+    preview.src = currentUser.photo_url;
+    preview.style.display = 'block';
+    placeholder.style.display = 'none';
+  } else {
+    preview.style.display = 'none';
+    placeholder.style.display = 'block';
+  }
+  document.getElementById('settingsError').style.display = 'none';
+  document.getElementById('settingsSuccess').style.display = 'none';
+}
+
+async function saveSettings() {
+  const prenom = document.getElementById('settings-prenom').value.trim();
+  const email = document.getElementById('settings-email').value.trim();
+  const password = document.getElementById('settings-password').value;
+  const photoFile = document.getElementById('settings-photo').files[0];
+  const errEl = document.getElementById('settingsError');
+  const okEl = document.getElementById('settingsSuccess');
+  errEl.style.display = 'none';
+  okEl.style.display = 'none';
+  if (!prenom || !email) {
+    errEl.textContent = 'Prénom et email requis';
+    errEl.style.display = 'block';
+    return;
+  }
+  showLoading('Mise à jour…');
+  try {
+    const formData = new FormData();
+    formData.append('prenom', prenom);
+    formData.append('email', email);
+    if (password) formData.append('password', password);
+    if (photoFile) formData.append('photo', photoFile);
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${API}/auth/me`, { method: 'PATCH', headers, body: formData });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erreur serveur');
+    currentUser = data.user;
+    localStorage.setItem('cq_user', JSON.stringify(currentUser));
+    okEl.style.display = 'block';
+    renderWelcome();
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  } finally {
+    hideLoading();
+  }
+}
+
+async function deleteAccount() {
+  const confirmed = confirm('Supprimer définitivement ton compte ? Cette action est irréversible.');
+  if (!confirmed) return;
+  const confirmed2 = confirm('Dernière confirmation — toutes tes réponses et ta lettre seront perdues.');
+  if (!confirmed2) return;
+  showLoading('Suppression…');
+  try {
+    await apiFetch('/auth/me', { method: 'DELETE' });
+    logout();
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+// Override showScreen pour les paramètres
+const _origShowScreen = showScreen;
+window.showScreen = function(id) {
+  _origShowScreen(id);
+  if (id === 'screen-settings') renderSettingsScreen();
+};
+
+// ══════════════════════════════════════════════
+// AFFICHAGE ANALYSE IA
+// ══════════════════════════════════════════════
+function renderAIAnalysis(aiAnalysis, cont) {
+  if (!aiAnalysis) return;
+
+  // ─── Résumé ───
+  const summary = document.createElement('div');
+  summary.style.cssText = 'background:linear-gradient(135deg,#fff0f8,#f0ecff);border-radius:24px;padding:24px;margin-bottom:16px;width:100%;text-align:center';
+  summary.innerHTML = `
+    <div style="font-family:'Pacifico',cursive;font-size:1.3rem;color:var(--pink);margin-bottom:10px">🤖 Analyse de votre relation</div>
+    <div style="font-size:0.95rem;font-weight:600;color:#3D2540;line-height:1.7">${aiAnalysis.summary}</div>
+  `;
+  cont.appendChild(summary);
+
+  // ─── Forces ───
+  if (aiAnalysis.strengths?.length) {
+    const s = document.createElement('div');
+    s.style.cssText = 'background:var(--card);border-radius:24px;padding:24px;margin-bottom:16px;width:100%';
+    s.innerHTML = `<div style="font-family:'Pacifico',cursive;font-size:1.1rem;color:#43a047;margin-bottom:14px">💚 Vos points forts</div>`;
+    aiAnalysis.strengths.forEach(item => {
+      s.innerHTML += `
+        <div style="background:#e8f5e9;border-radius:14px;padding:12px 16px;margin-bottom:10px">
+          <div style="font-weight:800;font-size:0.9rem;color:#2e7d32;margin-bottom:4px">${item.title}</div>
+          <div style="font-size:0.85rem;font-weight:600;color:#3D2540;line-height:1.6">${item.description}</div>
+        </div>`;
+    });
+    cont.appendChild(s);
+  }
+
+  // ─── Points de vigilance ───
+  if (aiAnalysis.watchPoints?.length) {
+    const colors = { low: { bg:'#fff8e1', title:'#f57f17', border:'#ffb300' }, medium: { bg:'#fff3e0', title:'#e65100', border:'#ff6d00' }, high: { bg:'#fce4ec', title:'#b71c1c', border:'#e53935' } };
+    const w = document.createElement('div');
+    w.style.cssText = 'background:var(--card);border-radius:24px;padding:24px;margin-bottom:16px;width:100%';
+    w.innerHTML = `<div style="font-family:'Pacifico',cursive;font-size:1.1rem;color:#e65100;margin-bottom:14px">👀 Points de vigilance</div>`;
+    aiAnalysis.watchPoints.forEach(item => {
+      const c = colors[item.severity] || colors.medium;
+      w.innerHTML += `
+        <div style="background:${c.bg};border-left:4px solid ${c.border};border-radius:14px;padding:12px 16px;margin-bottom:10px">
+          <div style="font-weight:800;font-size:0.9rem;color:${c.title};margin-bottom:4px">${item.title}</div>
+          <div style="font-size:0.85rem;font-weight:600;color:#3D2540;line-height:1.6">${item.description}</div>
+        </div>`;
+    });
+    cont.appendChild(w);
+  }
+
+  // ─── Insights personnalisés ───
+  if (aiAnalysis.insights?.length) {
+    const i = document.createElement('div');
+    i.style.cssText = 'background:var(--card);border-radius:24px;padding:24px;margin-bottom:16px;width:100%';
+    i.innerHTML = `<div style="font-family:'Pacifico',cursive;font-size:1.1rem;color:var(--pink);margin-bottom:14px">💡 Insights</div>`;
+    aiAnalysis.insights.forEach(item => {
+      i.innerHTML += `
+        <div style="background:var(--pink-light);border-radius:14px;padding:12px 16px;margin-bottom:10px">
+          <div style="font-size:0.7rem;font-weight:800;color:var(--pink);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">${item.person}</div>
+          <div style="font-size:0.85rem;font-weight:600;color:#3D2540;line-height:1.6">${item.text}</div>
+        </div>`;
+    });
+    cont.appendChild(i);
+  }
+
+  // ─── Actions concrètes ───
+  if (aiAnalysis.actionItems?.length) {
+    const a = document.createElement('div');
+    a.style.cssText = 'background:var(--card);border-radius:24px;padding:24px;margin-bottom:16px;width:100%';
+    a.innerHTML = `<div style="font-family:'Pacifico',cursive;font-size:1.1rem;color:#1976d2;margin-bottom:14px">🎯 À faire ensemble cette semaine</div>`;
+    aiAnalysis.actionItems.forEach((item, idx) => {
+      a.innerHTML += `
+        <div style="background:#e3f2fd;border-radius:14px;padding:12px 16px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start">
+          <div style="background:#1976d2;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.8rem;flex-shrink:0">${idx+1}</div>
+          <div style="font-size:0.85rem;font-weight:600;color:#3D2540;line-height:1.6">${item}</div>
+        </div>`;
+    });
+    cont.appendChild(a);
+  }
+}
+
+// Patch renderResults pour injecter l'IA
+const _origRenderResults = renderResults;
+window.renderResults = function(data) {
+  _origRenderResults(data);
+  if (data.aiAnalysis) {
+    const cont = document.getElementById('resultsContent');
+    renderAIAnalysis(data.aiAnalysis, cont);
+  }
+};
