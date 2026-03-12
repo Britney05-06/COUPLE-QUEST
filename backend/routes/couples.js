@@ -21,9 +21,7 @@ router.post('/create', auth, async (req, res) => {
       .or(`user1_id.eq.${req.user.id},user2_id.eq.${req.user.id}`)
       .single();
 
-    if (existing) {
-      return res.status(409).json({ error: 'Tu es déjà dans un couple' });
-    }
+    if (existing) return res.status(409).json({ error: 'Tu es déjà dans un couple' });
 
     let code, exists = true;
     while (exists) {
@@ -58,15 +56,9 @@ router.post('/join', auth, async (req, res) => {
       .eq('code', code.toUpperCase())
       .single();
 
-    if (error || !couple) {
-      return res.status(404).json({ error: 'Code invalide ou introuvable' });
-    }
-    if (couple.user2_id) {
-      return res.status(409).json({ error: 'Ce couple est déjà complet' });
-    }
-    if (couple.user1_id === req.user.id) {
-      return res.status(400).json({ error: 'Tu ne peux pas rejoindre ton propre couple !' });
-    }
+    if (error || !couple) return res.status(404).json({ error: 'Code invalide ou introuvable' });
+    if (couple.user2_id) return res.status(409).json({ error: 'Ce couple est déjà complet' });
+    if (couple.user1_id === req.user.id) return res.status(400).json({ error: 'Tu ne peux pas rejoindre ton propre couple !' });
 
     const { data: updated, error: updateError } = await supabase
       .from('couples')
@@ -100,9 +92,7 @@ router.get('/me', auth, async (req, res) => {
       .or(`user1_id.eq.${req.user.id},user2_id.eq.${req.user.id}`)
       .single();
 
-    if (error || !couple) {
-      return res.status(404).json({ error: 'Aucun couple trouvé' });
-    }
+    if (error || !couple) return res.status(404).json({ error: 'Aucun couple trouvé' });
 
     const { data: answers } = await supabase
       .from('answers')
@@ -120,13 +110,11 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
-module.exports = router;
-
-// ─── Quitter le couple ───
+// DELETE /api/couples/leave
 router.delete('/leave', auth, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { data: couple } = await db
+    const { data: couple } = await supabase
       .from('couples')
       .select('*')
       .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
@@ -134,10 +122,9 @@ router.delete('/leave', auth, async (req, res) => {
 
     if (!couple) return res.status(404).json({ error: 'Couple introuvable' });
 
-    // Supprimer les réponses et lettres du couple
-    await db.from('answers').delete().eq('couple_id', couple.id);
-    await db.from('letters').delete().eq('couple_id', couple.id);
-    await db.from('couples').delete().eq('id', couple.id);
+    await supabase.from('answers').delete().eq('couple_id', couple.id);
+    await supabase.from('letters').delete().eq('couple_id', couple.id);
+    await supabase.from('couples').delete().eq('id', couple.id);
 
     res.json({ success: true });
   } catch (err) {
@@ -145,3 +132,5 @@ router.delete('/leave', auth, async (req, res) => {
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
+
+module.exports = router;
